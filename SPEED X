@@ -1,0 +1,230 @@
+-- SPEED X : Slanted UI Modular
+-- Spin | Vehicle Speed | Run Fast | Warp Player List
+-- Client-side
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+player.CharacterAdded:Connect(function(c) char = c end)
+
+-- ================= STATE =================
+local spinOn, speedOn, runOn = false, false, false
+local spinPower, vehicleSpeed, runSpeed = 200, 120, 32
+
+local spinAV, speedBV
+
+-- ================= VEHICLE =================
+local function getVehicleRoot()
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum and hum.SeatPart then
+        local model = hum.SeatPart:FindFirstAncestorOfClass("Model")
+        return model and (model.PrimaryPart or hum.SeatPart)
+    end
+end
+
+local function clearVehicle()
+    if spinAV then spinAV:Destroy() spinAV = nil end
+    if speedBV then speedBV:Destroy() speedBV = nil end
+end
+
+RunService.Stepped:Connect(function()
+    local root = getVehicleRoot()
+    if not root then clearVehicle() return end
+
+    if spinOn then
+        if not spinAV then
+            spinAV = Instance.new("BodyAngularVelocity")
+            spinAV.MaxTorque = Vector3.new(0, math.huge, 0)
+            spinAV.Parent = root
+        end
+        spinAV.AngularVelocity = Vector3.new(0, spinPower, 0)
+    elseif spinAV then spinAV:Destroy() spinAV = nil end
+
+    if speedOn then
+        if not speedBV then
+            speedBV = Instance.new("BodyVelocity")
+            speedBV.MaxForce = Vector3.new(math.huge,0,math.huge)
+            speedBV.Parent = root
+        end
+        speedBV.Velocity = root.CFrame.LookVector * vehicleSpeed
+    elseif speedBV then speedBV:Destroy() speedBV = nil end
+end)
+
+-- ================= RUN FAST =================
+RunService.Heartbeat:Connect(function()
+    if runOn and char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = runSpeed end
+    end
+end)
+
+-- ================= UI =================
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "SpeedX_Slanted"
+
+-- Mini Toggle
+local toggle = Instance.new("TextButton", gui)
+toggle.Size = UDim2.new(0,46,0,46)
+toggle.Position = UDim2.new(0,10,0.45,0)
+toggle.Text = "⚡"
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 22
+toggle.BackgroundColor3 = Color3.fromRGB(25,25,25)
+toggle.TextColor3 = Color3.new(1,1,1)
+toggle.Active = true
+toggle.Draggable = true
+Instance.new("UICorner", toggle).CornerRadius = UDim.new(1,0)
+
+-- Main
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,420,0,260)
+main.Position = UDim2.new(0,70,0.35,0)
+main.BackgroundColor3 = Color3.fromRGB(18,18,18)
+main.BorderSizePixel = 0
+main.Visible = false
+main.Rotation = -4
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,18)
+
+toggle.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+end)
+
+-- ================= TABS =================
+local function tabButton(text,y)
+    local b = Instance.new("TextButton", main)
+    b.Size = UDim2.new(0,120,0,36)
+    b.Position = UDim2.new(0,10,0,y)
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 14
+    b.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    b.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+    return b
+end
+
+local spinTab  = tabButton("🚗 Spin",20)
+local speedTab = tabButton("⚡ Vehicle",62)
+local runTab   = tabButton("🏃 Run",104)
+local warpTab  = tabButton("🧍 Warp",146)
+
+-- ================= CONTENT =================
+local content = Instance.new("Frame", main)
+content.Size = UDim2.new(0,260,0,220)
+content.Position = UDim2.new(0,150,0,20)
+content.BackgroundTransparency = 1
+
+local function clearContent()
+    for _,v in pairs(content:GetChildren()) do v:Destroy() end
+end
+
+local function toggleBtn(text,y,callback)
+    local b = Instance.new("TextButton", content)
+    b.Size = UDim2.new(1,0,0,36)
+    b.Position = UDim2.new(0,0,0,y)
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 14
+    b.BackgroundColor3 = Color3.fromRGB(170,40,40)
+    b.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+    b.MouseButton1Click:Connect(callback)
+    return b
+end
+
+local function box(y,txt)
+    local t = Instance.new("TextBox", content)
+    t.Size = UDim2.new(1,0,0,32)
+    t.Position = UDim2.new(0,0,0,y)
+    t.Text = txt
+    t.Font = Enum.Font.Gotham
+    t.TextSize = 14
+    t.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    t.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", t).CornerRadius = UDim.new(0,8)
+    return t
+end
+
+-- ================= TAB LOGIC =================
+spinTab.MouseButton1Click:Connect(function()
+    clearContent()
+    local btn = toggleBtn("Spin : OFF",0,function()
+        spinOn = not spinOn
+        btn.Text = spinOn and "Spin : ON" or "Spin : OFF"
+        btn.BackgroundColor3 = spinOn and Color3.fromRGB(40,170,90) or Color3.fromRGB(170,40,40)
+    end)
+    local bx = box(44,tostring(spinPower))
+    bx.PlaceholderText = "Spin Power"
+    bx.FocusLost:Connect(function()
+        spinPower = math.clamp(tonumber(bx.Text) or spinPower,1,1000)
+        bx.Text = spinPower
+    end)
+end)
+
+speedTab.MouseButton1Click:Connect(function()
+    clearContent()
+    local btn = toggleBtn("Vehicle Speed : OFF",0,function()
+        speedOn = not speedOn
+        btn.Text = speedOn and "Vehicle Speed : ON" or "Vehicle Speed : OFF"
+        btn.BackgroundColor3 = speedOn and Color3.fromRGB(40,170,90) or Color3.fromRGB(170,40,40)
+    end)
+    local bx = box(44,tostring(vehicleSpeed))
+    bx.PlaceholderText = "Speed Power"
+    bx.FocusLost:Connect(function()
+        vehicleSpeed = math.clamp(tonumber(bx.Text) or vehicleSpeed,20,500)
+        bx.Text = vehicleSpeed
+    end)
+end)
+
+runTab.MouseButton1Click:Connect(function()
+    clearContent()
+    local btn = toggleBtn("Run Fast : OFF",0,function()
+        runOn = not runOn
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum and not runOn then hum.WalkSpeed = 16 end
+        btn.Text = runOn and "Run Fast : ON" or "Run Fast : OFF"
+        btn.BackgroundColor3 = runOn and Color3.fromRGB(40,170,90) or Color3.fromRGB(170,40,40)
+    end)
+    local bx = box(44,tostring(runSpeed))
+    bx.PlaceholderText = "Run Speed"
+    bx.FocusLost:Connect(function()
+        runSpeed = math.clamp(tonumber(bx.Text) or runSpeed,16,100)
+        bx.Text = runSpeed
+    end)
+end)
+
+warpTab.MouseButton1Click:Connect(function()
+    clearContent()
+    local list = Instance.new("ScrollingFrame", content)
+    list.Size = UDim2.new(1,0,1,0)
+    list.CanvasSize = UDim2.new(0,0,0,0)
+    list.ScrollBarImageTransparency = 0.5
+
+    local y = 0
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr ~= player then
+            local b = Instance.new("TextButton", list)
+            b.Size = UDim2.new(1,0,0,34)
+            b.Position = UDim2.new(0,0,0,y)
+            b.Text = plr.Name
+            b.Font = Enum.Font.Gotham
+            b.TextSize = 14
+            b.BackgroundColor3 = Color3.fromRGB(35,35,35)
+            b.TextColor3 = Color3.new(1,1,1)
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+            b.MouseButton1Click:Connect(function()
+                if char and char:FindFirstChild("HumanoidRootPart")
+                and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.CFrame =
+                        plr.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)
+                end
+            end)
+            y = y + 38
+        end
+    end
+    list.CanvasSize = UDim2.new(0,0,0,y)
+end)
